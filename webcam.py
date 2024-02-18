@@ -3,6 +3,14 @@
 # importing OpenCV library 
 import cv2 as cv
 
+def get_change(current, previous):
+	if current == previous:
+		return 0
+	try:
+		return (abs(current - previous) / previous) * 100.0
+	except ZeroDivisionError:
+		return float('inf')
+
 print('Starting Test Webcam program')
 
 # initialize the camera 
@@ -42,7 +50,7 @@ final_crop_image = gray_image[y+y_offset:y+h-y_offset, x+x_offset:x+w-x_offset]
 cv.imwrite("3FinalCropGray.png", final_crop_image)
 
 # Make the image whiter
-_, white_tresh = cv.threshold(final_crop_image, 175, 255, cv.THRESH_BINARY)
+_, white_tresh = cv.threshold(final_crop_image, 180, 255, cv.THRESH_BINARY)
 cv.imwrite("4WhiteImage.png", white_tresh)
 
 # threshold 
@@ -57,14 +65,90 @@ good_contours, _ = cv.findContours(final_crop_image, cv.RETR_EXTERNAL, cv.CHAIN_
 
 # filter by area 
 s1 = 0
-s2 = 40
-xcnts = [] 
+s2 = 50
+dots = [] 
 for cnt in suoer_good_contours: 
     if s1<cv.contourArea(cnt) <s2: 
-        xcnts.append(cnt) 
+        dots.append(cnt) 
 
+# Get the Number of dots
+num_of_dots = len(dots)
+print("\nDots number: {}".format(num_of_dots)) 
+# print(dots)
 
-print("\nDots number: {}".format(len(xcnts))) 
+# Recognize Braille
+diff_level = 5
+
+# Figure out colums
+colums = []
+for i in range(num_of_dots):
+	x, y, w, h = cv.boundingRect(dots[i])
+	num_comlums = len(colums)
+	if num_comlums == 0:
+		colums.append(x)
+	else:
+		match_tue = False
+		for j in range(num_comlums):
+			col_x = colums[j]
+			perc_diff = get_change(x, col_x)
+			# print("percent diff: " + str(perc_diff))
+			if perc_diff < diff_level:
+				match_tue = True
+		if match_tue == False:
+			colums.append(x)
+
+# Number of colums
+num_comlums = len(colums)
+print("Number of colums " + str(num_comlums))
+print(colums)
+
+# Figure out rows
+rows = []
+for i in range(num_of_dots):
+	x, y, w, h = cv.boundingRect(dots[i])
+	num_rows = len(rows)
+	if num_rows == 0:
+		rows.append(y)
+	else:
+		match_tue = False
+		for j in range(num_rows):
+			row_y = rows[j]
+			perc_diff = get_change(y, row_y)
+			# print("percent diff: " + str(perc_diff))
+			if perc_diff < diff_level:
+				match_tue = True
+		if match_tue == False:
+			rows.append(y)
+
+# Number of rows
+num_rows = len(rows)
+print("Number of rows " + str(num_rows))
+print(rows)
+
+# max_y = 0
+# max_index = 0
+# for i in range(num_of_dots):
+# 	x, y, w, h = cv.boundingRect(dots[i])
+# 	print("Dot {}".format(i))
+# 	print(x)
+# 	print(y)
+# 	if y > max_y:
+# 		max_y = y
+# 		max_index = i
+ 
+# print("Highest Dot: " + str(max_y) + " at index " + str(max_index))
+
+# Print the Braile Character
+if num_of_dots == 1:
+	print("Braille Letter " + "A")
+elif (num_of_dots == 2) and (num_comlums == 1) and (num_rows == 2):
+	print("Braille Letter " + "B")
+elif (num_of_dots == 2) and (num_comlums == 2) and (num_rows == 1):
+	print("Braille Letter " + "C")
+elif (num_of_dots == 3) and (num_comlums == 2) and (num_rows == 2):
+	print("Braille Letter " + "D")
+elif (num_of_dots == 2) and (num_comlums == 2) and (num_rows == 2):
+	print("Braille Letter " + "E")
 
 
 
